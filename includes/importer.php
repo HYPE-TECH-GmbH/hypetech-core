@@ -192,7 +192,7 @@ function hypetech_import_bild( string $root, string $name, array $def ) {
 	}
 	[ $w, $h ] = array_map( 'intval', explode( 'x', (string) ( $def['groesse'] ?? '1600x1000' ) ) + array( 1600, 1000 ) );
 	$motiv     = (string) ( $def['motiv'] ?? $name );
-	$hash      = $source ? md5_file( $source ) : md5( "platzhalter:{$w}x{$h}:{$motiv}:" . ( $def['ton'] ?? '' ) );
+	$hash      = $source ? md5_file( $source ) : md5( "platzhalter:v2:{$w}x{$h}:{$motiv}:" . ( $def['ton'] ?? '' ) );
 
 	$found = get_posts(
 		array(
@@ -269,10 +269,16 @@ function hypetech_platzhalter_bild( string $target, int $w, int $h, string $moti
 	$small = imagecreatetruecolor( imagefontwidth( 5 ) * strlen( $text ) + 24, imagefontheight( 5 ) + 14 );
 	imagefill( $small, 0, 0, imagecolorallocate( $small, 20, 20, 20 ) );
 	imagestring( $small, 5, 12, 7, $text, imagecolorallocate( $small, 255, 255, 255 ) );
-	$scale = max( 1, (int) floor( $w / 900 ) + 1 );
-	$sw    = imagesx( $small ) * $scale;
-	$sh    = imagesy( $small ) * $scale;
-	imagecopyresized( $img, $small, (int) ( ( $w - $sw ) / 2 ), (int) ( ( $h - $sh ) / 2 ), 0, 0, $sw, $sh, imagesx( $small ), imagesy( $small ) );
+	// Oben rechts platzieren (Texte in Hero/Cover stehen unten links) und nie breiter als 60 % des Bildes.
+	$scale  = max( 1, (int) floor( $w / 1000 ) );
+	$sw     = imagesx( $small ) * $scale;
+	$sh     = imagesy( $small ) * $scale;
+	if ( $sw > $w * 0.6 ) {
+		$sh = (int) ( $sh * ( $w * 0.6 ) / $sw );
+		$sw = (int) ( $w * 0.6 );
+	}
+	$margin = (int) max( 16, $w * 0.025 );
+	imagecopyresampled( $img, $small, $w - $sw - $margin, $margin, 0, 0, $sw, $sh, imagesx( $small ), imagesy( $small ) );
 	imagedestroy( $small );
 
 	$ok = imagejpeg( $img, $target, 82 );

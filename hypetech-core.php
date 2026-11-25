@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       HYPE:TECH Core
  * Description:       Kundenrolle, Editor-Sperren, Sicherheit, SMTP, Kontaktformular und Updates für HYPE:TECH-Websites. Wird über das mu-plugin hypetech-loader.php immer aktiv gehalten.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.6
  * Requires PHP:      8.2
  * Author:            HYPE:TECH
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const HYPETECH_CORE_VERSION = '1.0.0';
+const HYPETECH_CORE_VERSION = '1.1.0';
 define( 'HYPETECH_CORE_FILE', __FILE__ );
 define( 'HYPETECH_CORE_DIR', __DIR__ );
 

@@ -25,6 +25,9 @@ add_action(
 				'edit_pages'           => true,
 				'edit_published_pages' => true,
 				'edit_others_pages'    => true,
+				// Nötig, damit der Editor „Aktualisieren“ statt „Zur Überprüfung einreichen“ zeigt.
+				// Seiten anlegen ist separat gesperrt, offline nehmen verhindert editor.php.
+				'publish_pages'        => true,
 				'upload_files'         => true,
 			)
 		);

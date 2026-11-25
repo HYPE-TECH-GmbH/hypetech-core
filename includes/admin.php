@@ -81,6 +81,21 @@ function hypetech_dashboard_widget(): void {
 }
 
 /**
+ * Nach dem Login direkt zur Seitenliste (statt ins Profil).
+ */
+add_filter(
+	'login_redirect',
+	static function ( $redirect, $requested, $user ) {
+		if ( $user instanceof WP_User && hypetech_is_kunde( $user ) && ( ! $requested || str_contains( (string) $requested, 'wp-admin/profile.php' ) || admin_url() === $requested ) ) {
+			return admin_url( 'edit.php?post_type=page' );
+		}
+		return $redirect;
+	},
+	10,
+	3
+);
+
+/**
  * Kommentare global deaktivieren (Version 1 hat keinen Blog).
  */
 add_action(
