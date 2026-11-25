@@ -1,0 +1,29 @@
+/* HYPE:TECH Kontaktformular – nutzt die Design-Tokens des Themes (theme.json). */
+.ht-form { --ht-f-border: color-mix(in srgb, currentColor 22%, transparent); }
+.ht-form__row { display: grid; gap: 0 1.25rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.ht-form__field { display: flex; flex-direction: column; gap: .35rem; margin: 0 0 1.1rem; }
+.ht-form__field label { font-weight: 600; font-size: .95em; }
+.ht-form__optional { font-weight: 400; opacity: .7; }
+.ht-form input, .ht-form textarea {
+	font: inherit; color: inherit; width: 100%; box-sizing: border-box;
+	padding: .8rem .95rem; border: 1px solid var(--ht-f-border); border-radius: var(--wp--custom--radius--s, 6px);
+	background: var(--wp--preset--color--base, #fff);
+	transition: border-color .15s, box-shadow .15s;
+}
+.ht-form input:focus-visible, .ht-form textarea:focus-visible {
+	outline: none; border-color: var(--wp--preset--color--primary, currentColor);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--wp--preset--color--primary, currentColor) 25%, transparent);
+}
+.ht-form [aria-invalid="true"] { border-color: #b3261e; }
+.ht-form__error { color: #b3261e; font-size: .875em; min-height: 0; }
+.ht-form__error:empty { display: none; }
+.ht-form__hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.ht-form__privacy { font-size: .85em; opacity: .8; margin: 0 0 1rem; }
+.ht-form__status:empty { display: none; }
+.ht-form__status { font-weight: 600; }
+.ht-form__submit { cursor: pointer; border: 0; }
+.ht-form__submit:disabled { opacity: .6; cursor: progress; }
+.ht-form__thanks { padding: 1.5rem; border-radius: var(--wp--custom--radius--m, 10px); background: color-mix(in srgb, var(--wp--preset--color--primary, #2a6) 10%, transparent); font-weight: 600; }
+.ht-form__thanks:focus { outline: none; }
+.ht-form--editor input, .ht-form--editor textarea { pointer-events: none; }
+.ht-form__editor-thanks { margin-top: 1rem; font-size: .9em; opacity: .85; }

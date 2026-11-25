@@ -1,0 +1,11 @@
+{
+  "name": "hypetech-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HYPE:TECH Kern-Plugin für alle Kundenwebsites",
+  "scripts": {
+    "release": "node bin/release.mjs",
+    "monitor": "node tools/monitor.mjs"
+  }
+}

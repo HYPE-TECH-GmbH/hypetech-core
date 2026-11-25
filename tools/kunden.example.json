@@ -1,0 +1,4 @@
+[
+  { "name": "Werkstatt Nordholz (Demo)", "url": "https://demo.example.de", "token": "TOKEN-AUS-WP-CONFIG-MIN-32-ZEICHEN", "live": false },
+  { "name": "Musterkunde GmbH", "url": "https://www.musterkunde.de", "token": "" }
+]

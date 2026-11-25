@@ -1,0 +1,40 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hypetech/contact-form",
+	"title": "Kontaktformular",
+	"category": "widgets",
+	"icon": "email",
+	"description": "DSGVO-freundliches Kontaktformular ohne Datenbank-Speicherung (HYPE:TECH).",
+	"textdomain": "hypetech-core",
+	"attributes": {
+		"buttonText": {
+			"type": "string",
+			"default": "Nachricht senden",
+			"role": "content"
+		},
+		"successText": {
+			"type": "string",
+			"default": "Vielen Dank! Ihre Nachricht ist angekommen – wir melden uns in Kürze.",
+			"role": "content"
+		},
+		"showPhone": {
+			"type": "boolean",
+			"default": true
+		},
+		"privacyUrl": {
+			"type": "string",
+			"default": "/datenschutz/"
+		}
+	},
+	"supports": {
+		"html": false,
+		"reusable": false,
+		"multiple": false,
+		"lock": false
+	},
+	"editorScript": "file:./editor.js",
+	"viewScript": "file:./view.js",
+	"style": "file:./style.css",
+	"render": "file:./render.php"
+}
