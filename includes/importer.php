@@ -82,6 +82,19 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 		$log[]         = sprintf( 'Bild %-18s %s (ID %d)', $name, $result['status'], $result['id'] );
 	}
 
+	// ---------------------------------------------------------- Medien (Video, nur echte Dateien aus briefing/assets/medien)
+	foreach ( (array) ( $site['medien'] ?? array() ) as $name => $def ) {
+		$name   = sanitize_key( $name );
+		$result = hypetech_import_bild( $root, $name, (array) $def, 'medien' );
+		if ( is_wp_error( $result ) ) {
+			$log[] = "FEHLER Medium {$name}: " . $result->get_error_message();
+			continue;
+		}
+		$ids[ 'medien:' . $name ]  = $result['id'];
+		$urls[ 'medien:' . $name ] = wp_get_attachment_url( $result['id'] );
+		$log[]                     = sprintf( 'Medium %-16s %s (ID %d)', $name, $result['status'], $result['id'] );
+	}
+
 	// ---------------------------------------------------------- Seiten
 	$page_ids = array();
 	foreach ( (array) ( $site['seiten'] ?? array() ) as $seite ) {
@@ -93,14 +106,14 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 		}
 		$content = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 		$content = preg_replace_callback(
-			'/\{\{bild(-id)?:([a-z0-9_-]+)[^}]*\}\}/',
+			'/\{\{(bild|bild-id|medien):([a-z0-9_-]+)[^}]*\}\}/',
 			static function ( $m ) use ( $ids, $urls, &$log ) {
-				$key = $m[2];
+				$key = 'medien' === $m[1] ? 'medien:' . $m[2] : $m[2];
 				if ( ! isset( $ids[ $key ] ) ) {
-					$log[] = "WARNUNG: Bild „{$key}“ nicht importiert.";
-					return $m[1] ? '0' : '';
+					$log[] = "WARNUNG: „{$key}“ nicht importiert.";
+					return 'bild-id' === $m[1] ? '0' : '';
 				}
-				return $m[1] ? (string) $ids[ $key ] : esc_url( $urls[ $key ] );
+				return 'bild-id' === $m[1] ? (string) $ids[ $key ] : esc_url( $urls[ $key ] );
 			},
 			$content
 		);
@@ -181,10 +194,11 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
  *
  * @return array{id:int,status:string}|WP_Error
  */
-function hypetech_import_bild( string $root, string $name, array $def ) {
+function hypetech_import_bild( string $root, string $name, array $def, string $ordner = 'bilder' ) {
 	$source = null;
-	foreach ( array( 'jpg', 'jpeg', 'png', 'webp' ) as $ext ) {
-		$candidate = "{$root}/briefing/assets/bilder/{$name}.{$ext}";
+	$endung = 'medien' === $ordner ? array( 'mp4', 'webm' ) : array( 'jpg', 'jpeg', 'png', 'webp' );
+	foreach ( $endung as $ext ) {
+		$candidate = "{$root}/briefing/assets/{$ordner}/{$name}.{$ext}";
 		if ( is_readable( $candidate ) ) {
 			$source = $candidate;
 			break;
@@ -209,6 +223,10 @@ function hypetech_import_bild( string $root, string $name, array $def ) {
 	if ( $found ) {
 		update_post_meta( $found[0], '_wp_attachment_image_alt', sanitize_text_field( (string) ( $def['alt'] ?? '' ) ) );
 		return array( 'id' => (int) $found[0], 'status' => 'vorhanden' );
+	}
+
+	if ( ! $source && 'medien' === $ordner ) {
+		return new WP_Error( 'medium', "Datei briefing/assets/medien/{$name}.(mp4|webm) fehlt." );
 	}
 
 	$tmp = wp_tempnam( $name );

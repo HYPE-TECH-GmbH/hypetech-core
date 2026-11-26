@@ -72,3 +72,25 @@ add_action(
 		}
 	}
 );
+
+/**
+ * Seiten-Cache an CDNs (z. B. Hostinger „hcdn“) begrenzen: Ohne Angabe hält das CDN HTML bis zu 7 Tage –
+ * Inhalts- und Code-Änderungen wären so lange unsichtbar. Für Besucher: kurz cachen, im Hintergrund erneuern.
+ * Angemeldete Nutzer, Vorschauen und Formular-Antworten werden nicht gecacht.
+ * Filter `hypetech_cache_control` (leerer String = Header nicht setzen).
+ */
+add_action(
+	'send_headers',
+	static function (): void {
+		if ( is_admin() || headers_sent() || 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			return;
+		}
+		$wert = ( is_user_logged_in() || is_preview() || isset( $_GET['kontakt'] ) ) // phpcs:ignore WordPress.Security.NonceVerification
+			? 'private, no-store'
+			: 'public, max-age=0, s-maxage=300, stale-while-revalidate=60';
+		$wert = (string) apply_filters( 'hypetech_cache_control', $wert );
+		if ( '' !== $wert ) {
+			header( 'Cache-Control: ' . $wert );
+		}
+	}
+);
