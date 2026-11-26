@@ -2,6 +2,9 @@
 
 Format: neueste Version oben. Jede Version = GitHub-Release mit `hypetech-core.zip` und `update.json` (siehe README).
 
+## 1.2.2 – 2026-11-26
+- Neue Plugin-Beschreibung in der WordPress-Pluginliste.
+
 ## 1.2.1 – 2026-11-26
 - Cache-Control für Besucher-Seiten (5 Min. am CDN, `hypetech_cache_control`): Hostinger-CDN hielt HTML sonst 7 Tage, Deploys waren unsichtbar.
 

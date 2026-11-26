@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       HYPE:TECH Core
- * Description:       Kundenrolle, Editor-Sperren, Sicherheit, SMTP, Kontaktformular und Updates für HYPE:TECH-Websites. Wird über das mu-plugin hypetech-loader.php immer aktiv gehalten.
- * Version:           1.2.1
+ * Description:       Unser ultimatives WordPress-Plugin. Volle Funktionalität, volle Kontrolle & immer up to date. Für hochwertige und schnelle Webseiten, weltweit.
+ * Version:           1.2.2
  * Requires at least: 6.6
  * Requires PHP:      8.2
  * Author:            HYPE:TECH
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const HYPETECH_CORE_VERSION = '1.2.1';
+const HYPETECH_CORE_VERSION = '1.2.2';
 define( 'HYPETECH_CORE_FILE', __FILE__ );
 define( 'HYPETECH_CORE_DIR', __DIR__ );
 
