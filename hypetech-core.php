@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       HYPE:TECH Core
  * Description:       Unser ultimatives WordPress-Plugin. Volle Funktionalität, volle Kontrolle & immer up to date. Für hochwertige und schnelle Webseiten, weltweit.
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 6.6
  * Requires PHP:      8.2
  * Author:            HYPE:TECH
@@ -15,17 +15,17 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const HYPETECH_CORE_VERSION = '1.4.0';
+const HYPETECH_CORE_VERSION = '1.4.1';
 define( 'HYPETECH_CORE_FILE', __FILE__ );
 define( 'HYPETECH_CORE_DIR', __DIR__ );
 
 /*
  * Update-Quelle: JSON-Manifest des neuesten Releases (siehe bin/release.mjs).
  * Kann in wp-config.php überschrieben werden. Leer = Updater aus.
- * Platzhalter <ORG> nach Anlegen des GitHub-Repos ersetzen (docs/ENTSCHEIDUNGEN.md #08).
+ * Öffentliches Repo HYPE-TECH-GmbH/hypetech-core (Entscheidung #27): Releases ohne Zugangsdaten abrufbar.
  */
 if ( ! defined( 'HYPETECH_CORE_UPDATE_JSON' ) ) {
-	define( 'HYPETECH_CORE_UPDATE_JSON', 'https://github.com/<ORG>/hypetech-core/releases/latest/download/update.json' );
+	define( 'HYPETECH_CORE_UPDATE_JSON', 'https://github.com/HYPE-TECH-GmbH/hypetech-core/releases/latest/download/update.json' );
 }
 
 require_once __DIR__ . '/includes/helpers.php';

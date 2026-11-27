@@ -25,7 +25,7 @@ Lokal wird das Plugin von jedem Kundenprojekt per `npm run setup` aus diesem Ord
 1. Version in `hypetech-core.php` an **zwei** Stellen erhöhen (Header `Version:` und `HYPETECH_CORE_VERSION`), `CHANGELOG.md` ergänzen, ebenso `blocks/contact-form/*.asset.php` bei JS-Änderungen.
 2. `HYPETECH_GITHUB_ORG=<org> npm run release -- "Kurzbeschreibung"` → `dist/hypetech-core.zip` + `dist/update.json`.
 3. GitHub-Release `v<Version>` anlegen, beide Dateien als Assets anhängen. Die Seiten holen das Update innerhalb von ~12 h automatisch.
-4. Repo muss öffentlich sein **oder** die Assets an einem öffentlichen Ort liegen (enthält keine Geheimnisse). `HYPETECH_CORE_UPDATE_JSON` in `wp-config.php` kann die Quelle pro Seite überschreiben.
+4. Das Repo ist **öffentlich** (Entscheidung #27), damit Kundenseiten Releases ohne Zugangsdaten laden. Deshalb: nie Geheimnisse, Kundendaten oder `tools/kunden.json` committen; Commits mit der GitHub-noreply-Adresse (ist in diesem Repo lokal eingestellt). `HYPETECH_CORE_UPDATE_JSON` in `wp-config.php` kann die Quelle pro Seite überschreiben.
 
 ## Monitoring
 `tools/kunden.json` (nicht im Repo, Vorlage `kunden.example.json`) mit Name, URL, Token → `npm run monitor`. Prüft Erreichbarkeit, Antwortzeit, SSL-Ablauf, Header und per Token: WP-/Plugin-Updates, Kern-Version, SMTP, 2FA, Indexierung.

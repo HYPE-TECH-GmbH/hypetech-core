@@ -15,7 +15,7 @@ if (!version || version !== constVersion) {
 	console.error(`Version im Plugin-Header (${version}) und HYPETECH_CORE_VERSION (${constVersion}) müssen gleich sein.`);
 	process.exit(1);
 }
-const org = process.env.HYPETECH_GITHUB_ORG || '<ORG>';
+const org = process.env.HYPETECH_GITHUB_ORG || 'HYPE-TECH-GmbH';
 const dist = join(root, 'dist');
 mkdirSync(dist, { recursive: true });
 

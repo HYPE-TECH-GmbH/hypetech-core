@@ -2,6 +2,9 @@
 
 Format: neueste Version oben. Jede Version = GitHub-Release mit `hypetech-core.zip` und `update.json` (siehe README).
 
+## 1.4.1 – 2026-11-27
+- **Automatische Updates aktiv:** Update-Quelle ist jetzt das öffentliche Repo `HYPE-TECH-GmbH/hypetech-core` (vorher Platzhalter `<ORG>`, Updater war aus). Seiten mit älterem Kern brauchen einmal `npm run deploy`, danach aktualisieren sie sich selbst.
+
 ## 1.4.0 – 2026-11-27
 - **Einwilligung/Cookie-Banner** (Entscheidung #25): `site.json → einwilligung` (`aktiv`, `dienste`: Vorlagen youtube, vimeo, google-maps, google-analytics, matomo oder eigene). Banner zweisprachig (Seitensprache), Einstellungen je Dienst, Widerruf über Link `#einwilligung` (Navigation-Link wird ausgeblendet, wenn das Modul aus ist).
 - Zwei-Klick-Videos: Bild-Block mit Klasse `ht-video` und Link auf YouTube/Vimeo → Hinweis, dann `youtube-nocookie.com`-Player.
