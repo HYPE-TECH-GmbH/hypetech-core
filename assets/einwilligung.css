@@ -1,0 +1,99 @@
+/* Einwilligung (Entscheidung #25) – übernimmt Farben/Schrift des Themes über die Paletten-Slugs. */
+.ht-ew,
+.ht-video {
+	--ht-ew-bg: var(--wp--preset--color--surface, #fff);
+	--ht-ew-text: var(--wp--preset--color--contrast, #111);
+	--ht-ew-knopf: var(--wp--preset--color--primary, #111);
+	--ht-ew-knopf-text: var(--wp--preset--color--base, #fff);
+	--ht-ew-linie: color-mix(in srgb, var(--ht-ew-text) 18%, transparent);
+}
+.ht-ew {
+	position: fixed;
+	z-index: 99999;
+	left: 16px;
+	bottom: 16px;
+	width: min(440px, calc(100vw - 32px));
+	max-height: calc(100vh - 32px);
+	overflow: auto;
+	overscroll-behavior: contain;
+	box-sizing: border-box;
+	padding: 20px;
+	background: var(--ht-ew-bg);
+	color: var(--ht-ew-text);
+	border: 1px solid var(--ht-ew-linie);
+	border-radius: 10px;
+	box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+	font-size: 14px;
+	line-height: 1.5;
+}
+.ht-ew[hidden] { display: none; }
+.ht-ew p { margin: 0 0 10px; }
+.ht-ew a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.ht-ew__titel { font-size: 16px; font-weight: 700; outline: none; }
+.ht-ew__links { display: flex; gap: 16px; font-size: 13px; }
+.ht-ew__details { margin: 12px 0; border-top: 1px solid var(--ht-ew-linie); }
+.ht-ew__details[hidden] { display: none; }
+.ht-ew__gruppe { margin: 0; padding: 12px 0 0; border: 0; }
+.ht-ew__gruppe legend { padding: 12px 0 0; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; }
+.ht-ew__dienst { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.ht-ew__dienst input { width: 18px; height: 18px; margin: 0; accent-color: var(--ht-ew-knopf); }
+.ht-ew__info { margin: 4px 0 8px 26px !important; font-size: 13px; opacity: 0.85; }
+.ht-ew__knoepfe { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+.ht-ew__knopf,
+.ht-video__knopf {
+	flex: 1 1 auto;
+	min-height: 44px;
+	padding: 10px 16px;
+	border: 1px solid var(--ht-ew-knopf);
+	border-radius: 6px;
+	background: var(--ht-ew-knopf);
+	color: var(--ht-ew-knopf-text);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+.ht-ew__knopf[hidden] { display: none; }
+.ht-ew__mehr {
+	min-height: 44px;
+	padding: 10px 4px;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+}
+.ht-ew :focus-visible,
+.ht-video :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+@media (max-width: 600px) {
+	.ht-ew { left: 8px; right: 8px; bottom: 8px; width: auto; }
+}
+
+/* Zwei-Klick-Video: Bild-Block mit Klasse ht-video und Link auf YouTube/Vimeo */
+.ht-video { position: relative; }
+.ht-video__frame { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 0; border-radius: inherit; }
+.ht-video.ht-video--laeuft::before,
+.ht-video.ht-video--laeuft::after,
+.ht-video.ht-video--hinweis::before,
+.ht-video.ht-video--hinweis::after { content: none !important; }
+.ht-video__hinweis {
+	position: absolute;
+	z-index: 2;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 12px;
+	padding: clamp(16px, 4vw, 32px);
+	background: color-mix(in srgb, var(--ht-ew-bg) 94%, transparent);
+	color: var(--ht-ew-text);
+	font-size: 14px;
+	line-height: 1.5;
+	border-radius: inherit;
+}
+.ht-video__hinweis p { margin: 0; max-width: 44ch; }
+.ht-video__knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+.ht-video__knopf { flex: 0 1 auto; }
+.ht-video__knopf--zweit { background: transparent; color: var(--ht-ew-text); border-color: var(--ht-ew-linie); }
+.ht-video__mehr { color: inherit; font-size: 13px; }

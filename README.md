@@ -14,6 +14,8 @@ Kern-Plugin für alle HYPE:TECH-Kundenwebsites. Eine Codebasis, viele Seiten: Si
 | `includes/contact.php` + `blocks/contact-form/` | Kontaktformular (REST + Fallback ohne JS, Honeypot, Zeit-Token, Rate-Limit, keine Speicherung) |
 | `includes/importer.php` | Import von `content/` aus Kundenprojekten (WP-CLI + Admin-Upload) |
 | `includes/updater.php` | Selbst-Update über `update.json` aus GitHub-Releases |
+| `includes/consent.php` + `assets/einwilligung.*` | Cookie-Banner/Einwilligung, Zwei-Klick-Videos, Skripte erst nach Zustimmung (Entscheidung #25) |
+| `includes/seo.php` | Meta, Canonical, Open Graph, JSON-LD, Sitemap (Entscheidung #22) |
 | `includes/status.php` | `/wp-json/hypetech/v1/status` für Monitoring (nur mit `HYPETECH_STATUS_TOKEN`) |
 
 ## Entwickeln

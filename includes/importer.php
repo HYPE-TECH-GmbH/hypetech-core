@@ -70,15 +70,19 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 	$permalinks = (string) ( $opt['permalinks'] ?? '/%postname%/' );
 	$permalinks = preg_match( '#^/[a-z0-9/_%-]*%postname%/$#', $permalinks ) ? $permalinks : '/%postname%/';
 	$kat_basis  = sanitize_text_field( (string) ( $opt['kategorie_basis'] ?? '' ) );
-	if ( get_option( 'permalink_structure' ) !== $permalinks || get_option( 'category_base' ) !== $kat_basis ) {
-		global $wp_rewrite;
-		$wp_rewrite->set_permalink_structure( $permalinks );
-		$wp_rewrite->set_category_base( $kat_basis );
-		flush_rewrite_rules( false );
-	}
+	global $wp_rewrite;
+	$wp_rewrite->set_permalink_structure( $permalinks );
+	$wp_rewrite->set_category_base( $kat_basis );
+	// Regeln werden am Ende des Imports neu geschrieben (nach Sprachen und Taxonomien).
 	// SEO-Grunddaten (Organisation, Standard-Bild …) für includes/seo.php.
 	if ( isset( $site['seo'] ) && is_array( $site['seo'] ) ) {
 		update_option( 'hypetech_seo', hypetech_import_text_tief( $site['seo'] ), false );
+	}
+	// Einwilligung/Cookie-Banner (Entscheidung #25) für includes/consent.php. Fehlt der Eintrag → aus.
+	$einwilligung = isset( $site['einwilligung'] ) && is_array( $site['einwilligung'] ) ? hypetech_import_text_tief( $site['einwilligung'] ) : array( 'aktiv' => false );
+	update_option( 'hypetech_einwilligung', $einwilligung );
+	if ( ! empty( $einwilligung['aktiv'] ) ) {
+		$log[] = 'Einwilligung aktiv: ' . implode( ', ', array_map( static fn( $d ) => is_array( $d ) ? ( $d['id'] ?? '?' ) : $d, (array) ( $einwilligung['dienste'] ?? array() ) ) ) . '.';
 	}
 	$log[] = "Optionen gesetzt (Titel, Sprache {$sprache}, Formular-Empfänger, Permalinks {$permalinks}, Zeitzone).";
 
@@ -184,9 +188,11 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 		if ( $erste ) {
 			update_option( 'default_category', $erste->term_id );
 		}
-		$unkat = get_term_by( 'slug', 'uncategorized', 'category' ) ?: get_term_by( 'slug', 'allgemein', 'category' );
-		if ( $unkat && 0 === (int) $unkat->count && ( ! $erste || $erste->term_id !== $unkat->term_id ) ) {
-			wp_delete_term( $unkat->term_id, 'category' );
+		// WordPress-/Polylang-Standardkategorien („Uncategorized“, „uncategorized-de“, „Allgemein“) entfernen, wenn leer.
+		foreach ( get_terms( array( 'taxonomy' => 'category', 'hide_empty' => false, 'lang' => '' ) ) as $unkat ) {
+			if ( preg_match( '/^(uncategorized|allgemein|unkategorisiert)(-[a-z]{2})?$/', $unkat->slug ) && 0 === (int) $unkat->count && ( ! $erste || $erste->term_id !== $unkat->term_id ) ) {
+				wp_delete_term( $unkat->term_id, 'category' );
+			}
 		}
 	}
 	foreach ( (array) ( $site['beitraege'] ?? array() ) as $beitrag ) {
@@ -238,6 +244,16 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 	if ( isset( $page_ids['datenschutz'] ) ) {
 		update_option( 'wp_page_for_privacy_policy', $page_ids['datenschutz'] );
 	}
+	if ( isset( $page_ids['impressum'] ) ) {
+		update_option( 'hypetech_impressum_seite', $page_ids['impressum'] ); // Link im Cookie-Banner
+	}
+
+	// Kategorie-Basis wirkt erst nach erneutem Registrieren der Standard-Taxonomien; danach Regeln neu schreiben.
+	create_initial_taxonomies();
+	if ( function_exists( 'PLL' ) && isset( PLL()->model ) ) {
+		PLL()->model->clean_languages_cache(); // Startseite/Beitragsseite je Sprache neu ermitteln
+	}
+	flush_rewrite_rules( false );
 
 	kses_init_filters();
 	return $log;
@@ -254,7 +270,7 @@ function hypetech_import_eintrag( string $typ, array $e, string $content, string
 	$slug     = sanitize_title( $e['slug'] ?? '' );
 	$name     = 'page' === $typ ? 'Seite' : 'Beitrag';
 	$existing = get_page_by_path( $slug, OBJECT, $typ );
-	$hash     = md5( $content . wp_json_encode( $e ) );
+	$hash     = md5( $content . wp_json_encode( $e ) . ( $ids[ sanitize_key( (string) ( $e['bild'] ?? '' ) ) ] ?? '' ) . ( $ids[ sanitize_key( (string) ( $e['seo_bild'] ?? '' ) ) ] ?? '' ) ); // inkl. Bild-IDs: neues Bild = neu schreiben
 	$data     = array(
 		'post_type'    => $typ,
 		'post_status'  => in_array( $e['status'] ?? '', array( 'draft', 'private' ), true ) ? $e['status'] : 'publish',
@@ -309,7 +325,7 @@ function hypetech_import_eintrag( string $typ, array $e, string $content, string
 	}
 	foreach ( (array) ( $e['terme'] ?? array() ) as $tax => $slugs ) {
 		if ( taxonomy_exists( (string) $tax ) ) {
-			wp_set_object_terms( $id, array_map( 'sanitize_title', (array) $slugs ), (string) $tax );
+			wp_set_object_terms( $id, array_map( 'sanitize_text_field', (array) $slugs ), (string) $tax ); // Slug oder Name; fehlende Begriffe werden mit diesem Namen angelegt.
 		}
 	}
 	$bild = sanitize_key( (string) ( $e['bild'] ?? '' ) );
@@ -380,12 +396,12 @@ function hypetech_import_sprachen( array $sprachen ): array {
 	}
 	if ( $standard ) {
 		$o = PLL()->options;
-		foreach ( array( 'default_lang' => $standard, 'force_lang' => 1, 'hide_default' => true, 'rewrite' => true, 'browser' => false, 'redirect_lang' => false, 'media_support' => false ) as $k => $v ) {
+		foreach ( array( 'default_lang' => $standard, 'force_lang' => 1, 'hide_default' => true, 'rewrite' => true, 'browser' => false, 'redirect_lang' => true, 'media_support' => false ) as $k => $v ) {
 			$o->set( $k, $v );
 		}
 		$o->save();
 		PLL()->model->clean_languages_cache();
-		$log[] = "Polylang: Standardsprache {$standard}, weitere Sprachen unter /<code>/.";
+		$log[] = "Polylang: Standardsprache {$standard}, weitere Sprachen unter /<code>/ (Startseite = /<code>/).";
 	}
 	return $log;
 }

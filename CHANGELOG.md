@@ -2,6 +2,14 @@
 
 Format: neueste Version oben. Jede Version = GitHub-Release mit `hypetech-core.zip` und `update.json` (siehe README).
 
+## 1.4.0 – 2026-11-27
+- **Einwilligung/Cookie-Banner** (Entscheidung #25): `site.json → einwilligung` (`aktiv`, `dienste`: Vorlagen youtube, vimeo, google-maps, google-analytics, matomo oder eigene). Banner zweisprachig (Seitensprache), Einstellungen je Dienst, Widerruf über Link `#einwilligung` (Navigation-Link wird ausgeblendet, wenn das Modul aus ist).
+- Zwei-Klick-Videos: Bild-Block mit Klasse `ht-video` und Link auf YouTube/Vimeo → Hinweis, dann `youtube-nocookie.com`-Player.
+- `hypetech_einwilligung_skript()` für Analytics o. Ä., JS-API `window.hypetechEinwilligung`, Ereignis `hypetech:einwilligung`.
+- Importer: Option `hypetech_impressum_seite` (Seite `impressum`) für den Banner-Link.
+- Polylang-Cookie `pll_language` abgeschaltet (`PLL_COOKIE`), Sprache steht in der URL.
+- Importer: Bild-IDs fließen in den Änderungs-Hash ein (neues Beitragsbild wird übernommen); leere Standard-Kategorien aller Sprachen werden entfernt.
+
 ## 1.3.0 – 2026-11-27
 - **Beiträge für Kunden** (Entscheidung #21): mit `kunde_darf_beitraege` in site.json legt die Kundenrolle eigene Beiträge an, bearbeitet und löscht sie (frei aus den erlaubten Blöcken). Seiten bleiben gesperrt.
 - Importer: `kategorien`, `beitraege` (content/beitraege/*.html, Beitragsbild, Auszug, Datum, Kategorien, Terme), `beitragsseite`; Optionen `sprache`, `zeitzone`, `permalinks`, `kategorie_basis`; SEO-Felder je Seite/Beitrag (`beschreibung`, `seo_titel`, `seo_bild`, `noindex`, `seo_typ`).
