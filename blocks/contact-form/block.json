@@ -25,6 +25,20 @@
 		"privacyUrl": {
 			"type": "string",
 			"default": "/datenschutz/"
+		},
+		"showCompany": {
+			"type": "boolean",
+			"default": false
+		},
+		"messageLabel": {
+			"type": "string",
+			"default": "",
+			"role": "content"
+		},
+		"messagePlaceholder": {
+			"type": "string",
+			"default": "",
+			"role": "content"
 		}
 	},
 	"supports": {

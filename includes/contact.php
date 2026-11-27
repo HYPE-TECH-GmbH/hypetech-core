@@ -46,34 +46,38 @@ function hypetech_contact_process( array $input ): array {
 		return array( 'ok' => true, 'message' => '', 'errors' => array() );
 	}
 	if ( ! hypetech_contact_token_ok( (string) ( $input['_ht'] ?? '' ) ) ) {
-		return $fail( 'Das Formular wurde zu schnell abgeschickt. Bitte versuchen Sie es in ein paar Sekunden erneut.' );
+		return $fail( hypetech_t( 'Das Formular wurde zu schnell abgeschickt. Bitte versuchen Sie es in ein paar Sekunden erneut.', 'The form was sent too quickly. Please try again in a few seconds.' ) );
 	}
 	if ( hypetech_rate_limited( 'contact', 5, 10 * MINUTE_IN_SECONDS ) ) {
-		return $fail( 'Zu viele Anfragen in kurzer Zeit. Bitte versuchen Sie es später erneut oder rufen Sie uns an.' );
+		return $fail( hypetech_t( 'Zu viele Anfragen in kurzer Zeit. Bitte versuchen Sie es später erneut oder rufen Sie uns an.', 'Too many requests in a short time. Please try again later or give us a call.' ) );
 	}
 
 	$name      = sanitize_text_field( (string) ( $input['name'] ?? '' ) );
 	$email     = sanitize_email( (string) ( $input['email'] ?? '' ) );
 	$telefon   = sanitize_text_field( (string) ( $input['telefon'] ?? '' ) );
+	$firma     = sanitize_text_field( (string) ( $input['firma'] ?? '' ) );
 	$nachricht = sanitize_textarea_field( (string) ( $input['nachricht'] ?? '' ) );
 
 	$errors = array();
 	if ( '' === $name || mb_strlen( $name ) > 200 ) {
-		$errors['name'] = 'Bitte geben Sie Ihren Namen an.';
+		$errors['name'] = hypetech_t( 'Bitte geben Sie Ihren Namen an.', 'Please enter your name.' );
 	}
 	if ( ! is_email( $email ) ) {
-		$errors['email'] = 'Bitte geben Sie eine gültige E-Mail-Adresse an.';
+		$errors['email'] = hypetech_t( 'Bitte geben Sie eine gültige E-Mail-Adresse an.', 'Please enter a valid email address.' );
 	}
 	if ( mb_strlen( $telefon ) > 50 ) {
-		$errors['telefon'] = 'Die Telefonnummer ist zu lang.';
+		$errors['telefon'] = hypetech_t( 'Die Telefonnummer ist zu lang.', 'The phone number is too long.' );
+	}
+	if ( mb_strlen( $firma ) > 200 ) {
+		$errors['firma'] = hypetech_t( 'Der Firmenname ist zu lang.', 'The company name is too long.' );
 	}
 	if ( '' === trim( $nachricht ) ) {
-		$errors['nachricht'] = 'Bitte schreiben Sie uns eine Nachricht.';
+		$errors['nachricht'] = hypetech_t( 'Bitte schreiben Sie uns eine Nachricht.', 'Please write us a message.' );
 	} elseif ( mb_strlen( $nachricht ) > HYPETECH_CONTACT_MAX_LENGTH ) {
-		$errors['nachricht'] = 'Die Nachricht ist zu lang (maximal 5.000 Zeichen).';
+		$errors['nachricht'] = hypetech_t( 'Die Nachricht ist zu lang (maximal 5.000 Zeichen).', 'The message is too long (5,000 characters at most).' );
 	}
 	if ( $errors ) {
-		return $fail( 'Bitte prüfen Sie die markierten Felder.', $errors );
+		return $fail( hypetech_t( 'Bitte prüfen Sie die markierten Felder.', 'Please check the highlighted fields.' ), $errors );
 	}
 
 	$recipient = sanitize_email( (string) get_option( 'hypetech_contact_recipient', '' ) );
@@ -85,6 +89,7 @@ function hypetech_contact_process( array $input ): array {
 	$subject = sprintf( 'Neue Anfrage über %s von %s', $site, $name );
 	$body    = "Neue Anfrage über das Kontaktformular\n\n"
 		. "Name: {$name}\n"
+		. ( $firma ? "Firma: {$firma}\n" : '' )
 		. "E-Mail: {$email}\n"
 		. ( $telefon ? "Telefon: {$telefon}\n" : '' )
 		. "\nNachricht:\n{$nachricht}\n\n"
@@ -95,7 +100,7 @@ function hypetech_contact_process( array $input ): array {
 	);
 
 	if ( ! wp_mail( $recipient, $subject, $body, $headers ) ) {
-		return $fail( 'Die Nachricht konnte gerade nicht versendet werden. Bitte rufen Sie uns an oder schreiben Sie uns direkt eine E-Mail.' );
+		return $fail( hypetech_t( 'Die Nachricht konnte gerade nicht versendet werden. Bitte rufen Sie uns an oder schreiben Sie uns direkt eine E-Mail.', 'Your message could not be sent right now. Please call us or email us directly.' ) );
 	}
 	return array( 'ok' => true, 'message' => '', 'errors' => array() );
 }

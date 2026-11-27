@@ -6,6 +6,8 @@ Format: neueste Version oben. Jede Version = GitHub-Release mit `hypetech-core.z
 - **Beiträge für Kunden** (Entscheidung #21): mit `kunde_darf_beitraege` in site.json legt die Kundenrolle eigene Beiträge an, bearbeitet und löscht sie (frei aus den erlaubten Blöcken). Seiten bleiben gesperrt.
 - Importer: `kategorien`, `beitraege` (content/beitraege/*.html, Beitragsbild, Auszug, Datum, Kategorien, Terme), `beitragsseite`; Optionen `sprache`, `zeitzone`, `permalinks`, `kategorie_basis`; SEO-Felder je Seite/Beitrag (`beschreibung`, `seo_titel`, `seo_bild`, `noindex`, `seo_typ`).
 - **SEO-Modul** (Entscheidung #22): Meta-Beschreibung, Canonical (auch Archive/Blätterseiten), Robots, Open Graph/Twitter, JSON-LD (Organisation, WebSite, WebPage, Breadcrumb, BlogPosting, Service), Sitemap nur Seiten/Beiträge/Kategorien. Aus, wenn The SEO Framework aktiv ist.
+- **Mehrsprachigkeit** (Entscheidung #24): Importer richtet Polylang ein (`sprachen`, je Eintrag `sprache` + `gruppe` → Übersetzungen verknüpft, Sprachpakete). SEO sprachbewusst (Startseite je Sprache, og:locale:alternate).
+- Kontaktformular in der Seitensprache (`hypetech_t()`, Deutsch/Englisch), optionales Firmenfeld (`showCompany`), eigene Beschriftung/Platzhalter fürs Nachrichtenfeld.
 
 ## 1.2.2 – 2026-11-26
 - Neue Plugin-Beschreibung in der WordPress-Pluginliste.

@@ -41,7 +41,7 @@
 			}
 			event.preventDefault();
 			clearErrors();
-			status.textContent = 'Wird gesendet …';
+			status.textContent = form.dataset.textSenden || 'Wird gesendet …';
 			button.disabled = true;
 
 			fetch( form.dataset.endpoint, {
@@ -60,11 +60,11 @@
 						thanks.focus();
 						return;
 					}
-					status.textContent = ( data && data.message ) || 'Es ist ein Fehler aufgetreten.';
+					status.textContent = ( data && data.message ) || form.dataset.textFehler || 'Es ist ein Fehler aufgetreten.';
 					showErrors( data && data.errors );
 				} )
 				.catch( function () {
-					status.textContent = 'Verbindung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+					status.textContent = form.dataset.textVerbindung || 'Verbindung fehlgeschlagen. Bitte versuchen Sie es erneut.';
 				} )
 				.finally( function () {
 					button.disabled = false;

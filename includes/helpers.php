@@ -29,6 +29,14 @@ function hypetech_kunde_darf_abschnitte(): bool {
 }
 
 /**
+ * Text in der Sprache der Website: Deutsch für de_*, sonst Englisch (Entscheidung #23).
+ * Für feste Kern-Texte im Frontend (Formular, Meldungen) – ohne Übersetzungsdateien.
+ */
+function hypetech_t( string $de, string $en ): string {
+	return str_starts_with( get_locale(), 'de' ) ? $de : $en;
+}
+
+/**
  * Darf der Kunde Beiträge (Blog, z. B. Projektberichte) selbst anlegen, bearbeiten und löschen?
  * Pro Kunde in site.json (`kunde_darf_beitraege`). Seiten bleiben davon unberührt gesperrt.
  */

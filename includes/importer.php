@@ -82,6 +82,23 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 	}
 	$log[] = "Optionen gesetzt (Titel, Sprache {$sprache}, Formular-Empfänger, Permalinks {$permalinks}, Zeitzone).";
 
+	// ---------------------------------------------------------- Sprachen (Polylang, Entscheidung #24)
+	$mehrsprachig = function_exists( 'PLL' ) && function_exists( 'pll_set_post_language' ) && ! empty( $site['sprachen'] );
+	if ( $mehrsprachig ) {
+		$log = array_merge( $log, hypetech_import_sprachen( (array) $site['sprachen'] ) );
+	} elseif ( ! empty( $site['sprachen'] ) ) {
+		$log[] = 'WARNUNG: site.json → sprachen gesetzt, aber Polylang ist nicht aktiv (site.json → plugins).';
+	}
+	$gruppen = array(
+		'post' => array(),
+		'term' => array(),
+	);
+	$merke   = static function ( string $art, array $e, int $id ) use ( &$gruppen, $mehrsprachig ): void {
+		if ( $mehrsprachig && $id && ! empty( $e['gruppe'] ) && ! empty( $e['sprache'] ) ) {
+			$gruppen[ $art ][ sanitize_key( (string) $e['gruppe'] ) ][ sanitize_key( (string) $e['sprache'] ) ] = $id;
+		}
+	};
+
 	// ---------------------------------------------------------- Bilder
 	$ids  = array();
 	$urls = array();
@@ -137,6 +154,7 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 		$id = hypetech_import_eintrag( 'page', (array) $seite, $platzhalter( (string) file_get_contents( $path ) ), $modus, $ids, $log ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 		if ( $id ) {
 			$page_ids[ $slug ] = $id;
+			$merke( 'post', (array) $seite, $id );
 		}
 	}
 
@@ -154,6 +172,10 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 		$res  = $term
 			? wp_update_term( $term->term_id, 'category', $args + array( 'name' => sanitize_text_field( (string) ( $kat['name'] ?? $slug ) ) ) )
 			: wp_insert_term( sanitize_text_field( (string) ( $kat['name'] ?? $slug ) ), 'category', $args );
+		if ( ! is_wp_error( $res ) && $mehrsprachig && ! empty( $kat['sprache'] ) ) {
+			pll_set_term_language( (int) $res['term_id'], sanitize_key( (string) $kat['sprache'] ) );
+			$merke( 'term', (array) $kat, (int) $res['term_id'] );
+		}
 		$log[] = is_wp_error( $res ) ? "FEHLER Kategorie {$slug}: " . $res->get_error_message() : "Kategorie {$slug}: " . ( $term ? 'aktualisiert' : 'angelegt' ) . '.';
 	}
 	// Leere Standardkategorie nicht öffentlich zeigen, wenn eigene Kategorien definiert sind.
@@ -174,7 +196,19 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 			$log[] = "FEHLER Beitrag {$slug}: Datei fehlt ({$path}).";
 			continue;
 		}
-		hypetech_import_eintrag( 'post', (array) $beitrag, $platzhalter( (string) file_get_contents( $path ) ), $modus, $ids, $log ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		$merke( 'post', (array) $beitrag, hypetech_import_eintrag( 'post', (array) $beitrag, $platzhalter( (string) file_get_contents( $path ) ), $modus, $ids, $log ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+	}
+	// Übersetzungen verknüpfen (Polylang): gleiche „gruppe“ = dieselbe Seite in mehreren Sprachen.
+	foreach ( $gruppen['post'] as $g => $paar ) {
+		if ( count( $paar ) > 1 ) {
+			pll_save_post_translations( $paar );
+			$log[] = "Übersetzungen verknüpft: {$g} (" . implode( ', ', array_keys( $paar ) ) . ').';
+		}
+	}
+	foreach ( $gruppen['term'] as $paar ) {
+		if ( count( $paar ) > 1 ) {
+			pll_save_term_translations( $paar );
+		}
 	}
 	$blog = sanitize_title( (string) ( $site['beitragsseite'] ?? '' ) );
 	if ( $blog && isset( $page_ids[ $blog ] ) ) {
@@ -297,10 +331,63 @@ function hypetech_import_eintrag( string $typ, array $e, string $content, string
 			delete_post_meta( $id, $k );
 		}
 	}
+	if ( ! empty( $e['sprache'] ) && function_exists( 'pll_set_post_language' ) ) {
+		pll_set_post_language( $id, sanitize_key( (string) $e['sprache'] ) );
+	}
 	update_post_meta( $id, '_hypetech_import_hash', $hash );
 	update_post_meta( $id, '_hypetech_import_zeit', time() );
 	$log[] = "{$name} {$slug}: {$status} (ID {$id}).";
 	return (int) $id;
+}
+
+/**
+ * Sprachen in Polylang anlegen (site.json → sprachen: [{locale, slug, name?, flag?, standard?}]) und Sprachpakete laden.
+ * Polylang-Grundeinstellungen: Sprache im Pfad (/de/), Standardsprache ohne Präfix, keine Browser-Weiterleitung (SEO).
+ */
+function hypetech_import_sprachen( array $sprachen ): array {
+	$log = array();
+	require_once ABSPATH . 'wp-admin/includes/translation-install.php';
+	$standard = '';
+	foreach ( array_values( $sprachen ) as $i => $s ) {
+		$locale = preg_replace( '/[^A-Za-z_]/', '', (string) ( $s['locale'] ?? '' ) );
+		$slug   = sanitize_key( (string) ( $s['slug'] ?? '' ) );
+		if ( ! $locale || ! $slug ) {
+			continue;
+		}
+		if ( ! empty( $s['standard'] ) || ! $standard ) {
+			$standard = ! empty( $s['standard'] ) ? $slug : ( $standard ?: $slug );
+		}
+		if ( 'en_US' !== $locale && ! in_array( $locale, get_available_languages(), true ) ) {
+			$paket = wp_download_language_pack( $locale );
+			$log[] = $paket ? "Sprachpaket {$locale} installiert." : "WARNUNG: Sprachpaket {$locale} nicht ladbar.";
+		}
+		if ( PLL()->model->get_language( $slug ) ) {
+			continue;
+		}
+		$args = array_filter(
+			array(
+				'locale'         => $locale,
+				'slug'           => $slug,
+				'name'           => isset( $s['name'] ) ? sanitize_text_field( (string) $s['name'] ) : null,
+				'flag'           => isset( $s['flag'] ) ? sanitize_key( (string) $s['flag'] ) : null,
+				'term_group'     => $i,
+				'no_default_cat' => true,
+			),
+			static fn( $v ) => null !== $v
+		);
+		$res   = isset( PLL()->model->languages ) ? PLL()->model->languages->add( $args ) : PLL()->model->add_language( $args );
+		$log[] = is_wp_error( $res ) ? "FEHLER Sprache {$slug}: " . $res->get_error_message() : "Sprache {$slug} ({$locale}) angelegt.";
+	}
+	if ( $standard ) {
+		$o = PLL()->options;
+		foreach ( array( 'default_lang' => $standard, 'force_lang' => 1, 'hide_default' => true, 'rewrite' => true, 'browser' => false, 'redirect_lang' => false, 'media_support' => false ) as $k => $v ) {
+			$o->set( $k, $v );
+		}
+		$o->save();
+		PLL()->model->clean_languages_cache();
+		$log[] = "Polylang: Standardsprache {$standard}, weitere Sprachen unter /<code>/.";
+	}
+	return $log;
 }
 
 /**

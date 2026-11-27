@@ -34,6 +34,27 @@
 								props.setAttributes( { showPhone: v } );
 							},
 						} ),
+						el( components.ToggleControl, {
+							label: 'Firmenfeld anzeigen',
+							checked: !! a.showCompany,
+							onChange: function ( v ) {
+								props.setAttributes( { showCompany: v } );
+							},
+						} ),
+						el( components.TextControl, {
+							label: 'Beschriftung Nachrichtenfeld (leer = Standard)',
+							value: a.messageLabel,
+							onChange: function ( v ) {
+								props.setAttributes( { messageLabel: v } );
+							},
+						} ),
+						el( components.TextControl, {
+							label: 'Platzhalter im Nachrichtenfeld',
+							value: a.messagePlaceholder,
+							onChange: function ( v ) {
+								props.setAttributes( { messagePlaceholder: v } );
+							},
+						} ),
 						el( components.TextControl, {
 							label: 'Link zur Datenschutzerklärung',
 							value: a.privacyUrl,
@@ -43,9 +64,10 @@
 						} )
 					)
 				),
-				el( 'div', { className: 'ht-form__row' }, Field( 'Name *' ), Field( 'E-Mail *' ) ),
-				a.showPhone ? Field( 'Telefon (optional)' ) : null,
-				Field( 'Ihre Nachricht *', true ),
+				el( 'div', { className: 'ht-form__row' }, Field( 'Name *' ), a.showCompany ? Field( 'Firma (optional)' ) : Field( 'E-Mail *' ) ),
+				a.showCompany ? el( 'div', { className: 'ht-form__row' }, Field( 'E-Mail *' ), a.showPhone ? Field( 'Telefon (optional)' ) : null ) : null,
+				! a.showCompany && a.showPhone ? Field( 'Telefon (optional)' ) : null,
+				Field( ( a.messageLabel || 'Ihre Nachricht' ) + ' *', true ),
 				el(
 					'div',
 					{ className: 'wp-block-button' },

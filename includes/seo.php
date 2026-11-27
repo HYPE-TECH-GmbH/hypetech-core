@@ -42,6 +42,13 @@ function hypetech_seo_url( string $wert ): string {
 }
 
 /**
+ * Startseiten-URL der aktuellen Sprache (Polylang: /de/ usw., sonst /).
+ */
+function hypetech_seo_home(): string {
+	return function_exists( 'pll_home_url' ) ? (string) pll_home_url() : home_url( '/' );
+}
+
+/**
  * Das gerade angezeigte Objekt (Seite/Beitrag) – auch für die Beitragsseite (Blog-Übersicht).
  */
 function hypetech_seo_post(): ?WP_Post {
@@ -58,7 +65,7 @@ function hypetech_seo_post(): ?WP_Post {
 function hypetech_seo_canonical(): string {
 	$url = '';
 	if ( is_front_page() ) {
-		$url = home_url( '/' );
+		$url = hypetech_seo_home();
 	} elseif ( is_home() ) {
 		$url = (string) get_permalink( (int) get_option( 'page_for_posts' ) );
 	} elseif ( is_singular() ) {
@@ -216,6 +223,14 @@ add_action(
 			}
 			$og['og:image:alt'] = $bild['alt'];
 		}
+		if ( function_exists( 'pll_languages_list' ) ) {
+			foreach ( (array) pll_languages_list( array( 'fields' => 'locale' ) ) as $loc ) {
+				if ( $loc !== get_locale() ) {
+					printf( '<meta property="og:locale:alternate" content="%s">' . "
+", esc_attr( $loc ) );
+				}
+			}
+		}
 		if ( $artikel ) {
 			$og['article:published_time'] = get_post_time( 'c', true, $post );
 			$og['article:modified_time']  = get_post_modified_time( 'c', true, $post );
@@ -297,7 +312,7 @@ function hypetech_seo_graph( string $beschreibung, string $canonical, ?array $bi
 	}
 
 	// Breadcrumb: Start → (Eltern | Beitragsseite) → aktuelle Ansicht.
-	$krumen = array( array( get_bloginfo( 'name' ), $home ) );
+	$krumen = array( array( get_bloginfo( 'name' ), hypetech_seo_home() ) );
 	$post   = hypetech_seo_post();
 	$blog   = (int) get_option( 'page_for_posts' );
 	if ( $post && ! is_front_page() ) {
