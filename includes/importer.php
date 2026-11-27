@@ -47,6 +47,7 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 		'untertitel'            => 'blogdescription',
 		'kontakt_empfaenger'    => 'hypetech_contact_recipient',
 		'kunde_darf_abschnitte' => 'hypetech_kunde_darf_abschnitte',
+		'kunde_darf_beitraege'  => 'hypetech_kunde_darf_beitraege',
 		'support_kontakt'       => 'hypetech_support_kontakt',
 	);
 	foreach ( $map as $key => $option ) {
@@ -54,18 +55,32 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 			update_option( $option, is_bool( $opt[ $key ] ) ? (int) $opt[ $key ] : sanitize_text_field( (string) $opt[ $key ] ) );
 		}
 	}
-	update_option( 'timezone_string', 'Europe/Berlin' );
-	update_option( 'date_format', 'j. F Y' );
-	update_option( 'time_format', 'H:i' );
+	// Sprache der Website (Entscheidung #23): Standard Deutsch, international z. B. "en_US".
+	$sprache = preg_replace( '/[^A-Za-z_]/', '', (string) ( $opt['sprache'] ?? 'de_DE' ) );
+	update_option( 'WPLANG', 'en_US' === $sprache ? '' : $sprache );
+	$deutsch = str_starts_with( $sprache, 'de' );
+	update_option( 'timezone_string', sanitize_text_field( (string) ( $opt['zeitzone'] ?? 'Europe/Berlin' ) ) );
+	update_option( 'date_format', $deutsch ? 'j. F Y' : 'F j, Y' );
+	update_option( 'time_format', $deutsch ? 'H:i' : 'g:i a' );
 	update_option( 'start_of_week', 1 );
 	update_option( 'uploads_use_yearmonth_folders', 0 );
 	update_option( 'default_comment_status', 'closed' );
 	update_option( 'default_ping_status', 'closed' );
-	if ( '/%postname%/' !== get_option( 'permalink_structure' ) ) {
-		update_option( 'permalink_structure', '/%postname%/' );
+	// Permalinks: Standard /%postname%/; mit Blog z. B. "/projects/%postname%/" + Kategorie-Basis.
+	$permalinks = (string) ( $opt['permalinks'] ?? '/%postname%/' );
+	$permalinks = preg_match( '#^/[a-z0-9/_%-]*%postname%/$#', $permalinks ) ? $permalinks : '/%postname%/';
+	$kat_basis  = sanitize_text_field( (string) ( $opt['kategorie_basis'] ?? '' ) );
+	if ( get_option( 'permalink_structure' ) !== $permalinks || get_option( 'category_base' ) !== $kat_basis ) {
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( $permalinks );
+		$wp_rewrite->set_category_base( $kat_basis );
 		flush_rewrite_rules( false );
 	}
-	$log[] = 'Optionen gesetzt (Titel, Formular-Empfänger, Permalinks, Zeitzone).';
+	// SEO-Grunddaten (Organisation, Standard-Bild …) für includes/seo.php.
+	if ( isset( $site['seo'] ) && is_array( $site['seo'] ) ) {
+		update_option( 'hypetech_seo', hypetech_import_text_tief( $site['seo'] ), false );
+	}
+	$log[] = "Optionen gesetzt (Titel, Sprache {$sprache}, Formular-Empfänger, Permalinks {$permalinks}, Zeitzone).";
 
 	// ---------------------------------------------------------- Bilder
 	$ids  = array();
@@ -96,16 +111,8 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 	}
 
 	// ---------------------------------------------------------- Seiten
-	$page_ids = array();
-	foreach ( (array) ( $site['seiten'] ?? array() ) as $seite ) {
-		$slug = sanitize_title( $seite['slug'] ?? '' );
-		$path = $root . '/content/pages/' . basename( (string) ( $seite['datei'] ?? '' ) );
-		if ( ! $slug || ! is_readable( $path ) ) {
-			$log[] = "FEHLER Seite {$slug}: Datei fehlt ({$path}).";
-			continue;
-		}
-		$content = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
-		$content = preg_replace_callback(
+	$platzhalter = static function ( string $content ) use ( $ids, $urls, &$log ): string {
+		return (string) preg_replace_callback(
 			'/\{\{(bild|bild-id|medien):([a-z0-9_-]+)[^}]*\}\}/',
 			static function ( $m ) use ( $ids, $urls, &$log ) {
 				$key = 'medien' === $m[1] ? 'medien:' . $m[2] : $m[2];
@@ -117,49 +124,63 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 			},
 			$content
 		);
+	};
 
-		$existing = get_page_by_path( $slug, OBJECT, 'page' );
-		$hash     = md5( $content );
-		$data     = array(
-			'post_type'    => 'page',
-			'post_status'  => 'publish',
-			'post_title'   => wp_strip_all_tags( (string) ( $seite['titel'] ?? $slug ) ),
-			'post_name'    => $slug,
-			'post_content' => $content,
-			'menu_order'   => (int) ( $seite['reihenfolge'] ?? 0 ),
-		);
-
-		if ( $existing ) {
-			$page_ids[ $slug ] = $existing->ID;
-			$import_time       = (int) get_post_meta( $existing->ID, '_hypetech_import_zeit', true );
-			$kunde_geaendert   = $import_time && strtotime( $existing->post_modified_gmt . ' UTC' ) > $import_time + 5;
-			if ( 'neu' === $modus ) {
-				$log[] = "Seite {$slug}: existiert – übersprungen (Modus neu).";
-				continue;
-			}
-			if ( 'alle' === $modus && $kunde_geaendert ) {
-				$log[] = "Seite {$slug}: im CMS geändert – NICHT überschrieben (Modus erzwingen nötig).";
-				continue;
-			}
-			if ( get_post_meta( $existing->ID, '_hypetech_import_hash', true ) === $hash ) {
-				$log[] = "Seite {$slug}: unverändert.";
-				continue;
-			}
-			$data['ID'] = $existing->ID;
-			$id         = wp_update_post( wp_slash( $data ), true );
-			$status     = 'aktualisiert';
-		} else {
-			$id     = wp_insert_post( wp_slash( $data ), true );
-			$status = 'angelegt';
-		}
-		if ( is_wp_error( $id ) ) {
-			$log[] = "FEHLER Seite {$slug}: " . $id->get_error_message();
+	$page_ids = array();
+	foreach ( (array) ( $site['seiten'] ?? array() ) as $seite ) {
+		$slug = sanitize_title( $seite['slug'] ?? '' );
+		$path = $root . '/content/pages/' . basename( (string) ( $seite['datei'] ?? '' ) );
+		if ( ! $slug || ! is_readable( $path ) ) {
+			$log[] = "FEHLER Seite {$slug}: Datei fehlt ({$path}).";
 			continue;
 		}
-		$page_ids[ $slug ] = $id;
-		update_post_meta( $id, '_hypetech_import_hash', $hash );
-		update_post_meta( $id, '_hypetech_import_zeit', time() );
-		$log[] = "Seite {$slug}: {$status} (ID {$id}).";
+		$id = hypetech_import_eintrag( 'page', (array) $seite, $platzhalter( (string) file_get_contents( $path ) ), $modus, $ids, $log ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( $id ) {
+			$page_ids[ $slug ] = $id;
+		}
+	}
+
+	// ---------------------------------------------------------- Kategorien & Beiträge (Blog, Entscheidung #21)
+	foreach ( (array) ( $site['kategorien'] ?? array() ) as $kat ) {
+		$slug = sanitize_title( $kat['slug'] ?? '' );
+		if ( ! $slug ) {
+			continue;
+		}
+		$args = array(
+			'slug'        => $slug,
+			'description' => sanitize_textarea_field( (string) ( $kat['beschreibung'] ?? '' ) ),
+		);
+		$term = get_term_by( 'slug', $slug, 'category' );
+		$res  = $term
+			? wp_update_term( $term->term_id, 'category', $args + array( 'name' => sanitize_text_field( (string) ( $kat['name'] ?? $slug ) ) ) )
+			: wp_insert_term( sanitize_text_field( (string) ( $kat['name'] ?? $slug ) ), 'category', $args );
+		$log[] = is_wp_error( $res ) ? "FEHLER Kategorie {$slug}: " . $res->get_error_message() : "Kategorie {$slug}: " . ( $term ? 'aktualisiert' : 'angelegt' ) . '.';
+	}
+	// Leere Standardkategorie nicht öffentlich zeigen, wenn eigene Kategorien definiert sind.
+	if ( ! empty( $site['kategorien'] ) ) {
+		$erste = get_term_by( 'slug', sanitize_title( $site['kategorien'][0]['slug'] ?? '' ), 'category' );
+		if ( $erste ) {
+			update_option( 'default_category', $erste->term_id );
+		}
+		$unkat = get_term_by( 'slug', 'uncategorized', 'category' ) ?: get_term_by( 'slug', 'allgemein', 'category' );
+		if ( $unkat && 0 === (int) $unkat->count && ( ! $erste || $erste->term_id !== $unkat->term_id ) ) {
+			wp_delete_term( $unkat->term_id, 'category' );
+		}
+	}
+	foreach ( (array) ( $site['beitraege'] ?? array() ) as $beitrag ) {
+		$slug = sanitize_title( $beitrag['slug'] ?? '' );
+		$path = $root . '/content/beitraege/' . basename( (string) ( $beitrag['datei'] ?? '' ) );
+		if ( ! $slug || ! is_readable( $path ) ) {
+			$log[] = "FEHLER Beitrag {$slug}: Datei fehlt ({$path}).";
+			continue;
+		}
+		hypetech_import_eintrag( 'post', (array) $beitrag, $platzhalter( (string) file_get_contents( $path ) ), $modus, $ids, $log ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+	}
+	$blog = sanitize_title( (string) ( $site['beitragsseite'] ?? '' ) );
+	if ( $blog && isset( $page_ids[ $blog ] ) ) {
+		update_option( 'page_for_posts', $page_ids[ $blog ] );
+		update_option( 'posts_per_page', max( 1, (int) ( $opt['beitraege_pro_seite'] ?? 12 ) ) );
+		$log[] = "Beitragsseite: {$blog}.";
 	}
 
 	// ---------------------------------------------------------- Startseite & Aufräumen
@@ -186,6 +207,112 @@ function hypetech_import( string $root, string $modus = 'neu' ): array {
 
 	kses_init_filters();
 	return $log;
+}
+
+/**
+ * Eine Seite oder einen Beitrag anlegen/aktualisieren (gleiche Modus-Regeln für beide).
+ * Felder: slug, titel, reihenfolge | datum, auszug, kategorien[], terme{taxonomie:[slugs]}, bild (Beitragsbild),
+ * SEO: beschreibung, seo_titel, seo_bild (Bildname), noindex.
+ *
+ * @return int Post-ID oder 0.
+ */
+function hypetech_import_eintrag( string $typ, array $e, string $content, string $modus, array $ids, array &$log ): int {
+	$slug     = sanitize_title( $e['slug'] ?? '' );
+	$name     = 'page' === $typ ? 'Seite' : 'Beitrag';
+	$existing = get_page_by_path( $slug, OBJECT, $typ );
+	$hash     = md5( $content . wp_json_encode( $e ) );
+	$data     = array(
+		'post_type'    => $typ,
+		'post_status'  => in_array( $e['status'] ?? '', array( 'draft', 'private' ), true ) ? $e['status'] : 'publish',
+		'post_title'   => wp_strip_all_tags( (string) ( $e['titel'] ?? $slug ) ),
+		'post_name'    => $slug,
+		'post_content' => $content,
+		'menu_order'   => (int) ( $e['reihenfolge'] ?? 0 ),
+		'post_excerpt' => sanitize_textarea_field( (string) ( $e['auszug'] ?? '' ) ),
+	);
+	if ( ! empty( $e['datum'] ) && strtotime( (string) $e['datum'] ) ) {
+		$data['post_date'] = gmdate( 'Y-m-d H:i:s', (int) strtotime( (string) $e['datum'] ) );
+	}
+
+	if ( $existing ) {
+		$import_time     = (int) get_post_meta( $existing->ID, '_hypetech_import_zeit', true );
+		$kunde_geaendert = $import_time && strtotime( $existing->post_modified_gmt . ' UTC' ) > $import_time + 5;
+		if ( 'neu' === $modus ) {
+			$log[] = "{$name} {$slug}: existiert – übersprungen (Modus neu).";
+			return $existing->ID;
+		}
+		if ( 'alle' === $modus && $kunde_geaendert ) {
+			$log[] = "{$name} {$slug}: im CMS geändert – NICHT überschrieben (Modus erzwingen nötig).";
+			return $existing->ID;
+		}
+		if ( get_post_meta( $existing->ID, '_hypetech_import_hash', true ) === $hash ) {
+			$log[] = "{$name} {$slug}: unverändert.";
+			return $existing->ID;
+		}
+		$data['ID'] = $existing->ID;
+		$id         = wp_update_post( wp_slash( $data ), true );
+		$status     = 'aktualisiert';
+	} else {
+		$id     = wp_insert_post( wp_slash( $data ), true );
+		$status = 'angelegt';
+	}
+	if ( is_wp_error( $id ) ) {
+		$log[] = "FEHLER {$name} {$slug}: " . $id->get_error_message();
+		return 0;
+	}
+
+	if ( 'post' === $typ ) {
+		$kats = array();
+		foreach ( (array) ( $e['kategorien'] ?? array() ) as $k ) {
+			$term = get_term_by( 'slug', sanitize_title( (string) $k ), 'category' );
+			if ( $term ) {
+				$kats[] = (int) $term->term_id;
+			}
+		}
+		if ( $kats ) {
+			wp_set_post_categories( $id, $kats );
+		}
+	}
+	foreach ( (array) ( $e['terme'] ?? array() ) as $tax => $slugs ) {
+		if ( taxonomy_exists( (string) $tax ) ) {
+			wp_set_object_terms( $id, array_map( 'sanitize_title', (array) $slugs ), (string) $tax );
+		}
+	}
+	$bild = sanitize_key( (string) ( $e['bild'] ?? '' ) );
+	if ( $bild && isset( $ids[ $bild ] ) ) {
+		set_post_thumbnail( $id, $ids[ $bild ] );
+	}
+	$seo_bild = sanitize_key( (string) ( $e['seo_bild'] ?? '' ) );
+	$meta     = array(
+		'_hypetech_seo_beschreibung' => sanitize_textarea_field( (string) ( $e['beschreibung'] ?? '' ) ),
+		'_hypetech_seo_titel'        => sanitize_text_field( (string) ( $e['seo_titel'] ?? '' ) ),
+		'_hypetech_seo_bild'         => $seo_bild && isset( $ids[ $seo_bild ] ) ? (int) $ids[ $seo_bild ] : 0,
+		'_hypetech_seo_noindex'      => empty( $e['noindex'] ) ? 0 : 1,
+		'_hypetech_seo_typ'          => sanitize_key( (string) ( $e['seo_typ'] ?? '' ) ),
+	);
+	foreach ( $meta as $k => $v ) {
+		if ( $v ) {
+			update_post_meta( $id, $k, $v );
+		} else {
+			delete_post_meta( $id, $k );
+		}
+	}
+	update_post_meta( $id, '_hypetech_import_hash', $hash );
+	update_post_meta( $id, '_hypetech_import_zeit', time() );
+	$log[] = "{$name} {$slug}: {$status} (ID {$id}).";
+	return (int) $id;
+}
+
+/**
+ * Verschachtelte Angaben (site.json → seo) als reinen Text übernehmen.
+ */
+function hypetech_import_text_tief( array $daten ): array {
+	$out = array();
+	foreach ( $daten as $k => $v ) {
+		$k         = is_int( $k ) ? $k : sanitize_key( $k );
+		$out[ $k ] = is_array( $v ) ? hypetech_import_text_tief( $v ) : ( is_bool( $v ) ? $v : sanitize_text_field( (string) $v ) );
+	}
+	return $out;
 }
 
 /**

@@ -29,6 +29,14 @@ function hypetech_kunde_darf_abschnitte(): bool {
 }
 
 /**
+ * Darf der Kunde Beiträge (Blog, z. B. Projektberichte) selbst anlegen, bearbeiten und löschen?
+ * Pro Kunde in site.json (`kunde_darf_beitraege`). Seiten bleiben davon unberührt gesperrt.
+ */
+function hypetech_kunde_darf_beitraege(): bool {
+	return (bool) get_option( 'hypetech_kunde_darf_beitraege', false );
+}
+
+/**
  * Anonymisierter Schlüssel für die Client-IP (für Rate-Limits). Die IP selbst wird nie gespeichert.
  */
 function hypetech_ip_key( string $prefix ): string {

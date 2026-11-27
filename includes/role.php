@@ -29,6 +29,12 @@ add_action(
 				// Seiten anlegen ist separat gesperrt, offline nehmen verhindert editor.php.
 				'publish_pages'        => true,
 				'upload_files'         => true,
+				// Eigene Beiträge: nur wirksam mit kunde_darf_beitraege (siehe user_has_cap unten).
+				'edit_posts'             => true,
+				'edit_published_posts'   => true,
+				'publish_posts'          => true,
+				'delete_posts'           => true,
+				'delete_published_posts' => true,
 			)
 		);
 		// Eigenes Recht „Seiten anlegen“ für Admins und Redakteure.
@@ -65,7 +71,7 @@ add_filter(
  */
 add_filter(
 	'map_meta_cap',
-	static function ( array $caps, string $cap, int $user_id ): array {
+	static function ( array $caps, string $cap, int $user_id, array $args = array() ): array {
 		static $blocked_types = array( 'wp_block', 'wp_navigation', 'wp_template', 'wp_template_part', 'wp_global_styles' );
 		if ( ! in_array( $cap, array( 'edit_post', 'delete_post', 'publish_post', 'read_post' ), true ) && ! str_starts_with( $cap, 'edit_' ) ) {
 			return $caps;
@@ -79,12 +85,34 @@ add_filter(
 				return array( 'do_not_allow' );
 			}
 		}
-		// Kunde darf keine Seiten löschen (auch nicht in den Papierkorb).
+		// Kunde darf keine Seiten löschen (auch nicht in den Papierkorb) – eigene Beiträge schon, wenn freigeschaltet.
+		if ( 'delete_post' === $cap && hypetech_kunde_darf_beitraege() && isset( $args[0] ) && 'post' === get_post_type( (int) $args[0] ) ) {
+			return $caps;
+		}
 		if ( in_array( $cap, array( 'delete_post', 'delete_page' ), true ) ) {
 			return array( 'do_not_allow' );
 		}
 		return $caps;
 	},
 	10,
-	3
+	4
+);
+
+/**
+ * Beitragsrechte nur, wenn für diese Website freigeschaltet (Entscheidung #21).
+ * Die Rolle ist überall gleich, die Freigabe ist eine Option der jeweiligen Website.
+ */
+add_filter(
+	'user_has_cap',
+	static function ( array $allcaps, array $caps, array $args, WP_User $user ): array {
+		if ( ! in_array( HYPETECH_ROLE, (array) $user->roles, true ) || ! empty( $allcaps['manage_options'] ) || hypetech_kunde_darf_beitraege() ) {
+			return $allcaps;
+		}
+		foreach ( array( 'edit_posts', 'edit_published_posts', 'publish_posts', 'delete_posts', 'delete_published_posts' ) as $c ) {
+			unset( $allcaps[ $c ] );
+		}
+		return $allcaps;
+	},
+	10,
+	4
 );

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       HYPE:TECH Core
  * Description:       Unser ultimatives WordPress-Plugin. Volle Funktionalität, volle Kontrolle & immer up to date. Für hochwertige und schnelle Webseiten, weltweit.
- * Version:           1.2.2
+ * Version:           1.3.0
  * Requires at least: 6.6
  * Requires PHP:      8.2
  * Author:            HYPE:TECH
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const HYPETECH_CORE_VERSION = '1.2.2';
+const HYPETECH_CORE_VERSION = '1.3.0';
 define( 'HYPETECH_CORE_FILE', __FILE__ );
 define( 'HYPETECH_CORE_DIR', __DIR__ );
 
@@ -40,3 +40,4 @@ require_once __DIR__ . '/includes/contact.php';
 require_once __DIR__ . '/includes/updater.php';
 require_once __DIR__ . '/includes/status.php';
 require_once __DIR__ . '/includes/importer.php';
+require_once __DIR__ . '/includes/seo.php';

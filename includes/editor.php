@@ -38,7 +38,7 @@ add_filter(
  */
 add_filter(
 	'block_editor_settings_all',
-	static function ( array $settings ): array {
+	static function ( array $settings, $context = null ): array {
 		// Für alle Nutzer: keine Fremdquellen im Editor (DSGVO).
 		$settings['enableOpenverseMediaCategory'] = false;
 
@@ -49,12 +49,15 @@ add_filter(
 		$settings['codeEditingEnabled'] = false;
 		$settings['__experimentalCanUserUseUnfilteredHTML'] = false;
 		// Ohne Abschnittsverwaltung: oberste Ebene komplett gesperrt (kein Einfügen/Verschieben/Löschen).
-		if ( ! hypetech_kunde_darf_abschnitte() ) {
+		// Beiträge (Projektberichte) schreibt der Kunde frei aus den erlaubten Blöcken; Seiten bleiben gesperrt.
+		$ist_beitrag = isset( $context->post ) && $context->post instanceof WP_Post && 'post' === $context->post->post_type;
+		if ( ! hypetech_kunde_darf_abschnitte() && ! $ist_beitrag ) {
 			$settings['templateLock'] = 'all';
 		}
 		return $settings;
 	},
-	20
+	20,
+	2
 );
 
 /**

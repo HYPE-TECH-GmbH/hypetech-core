@@ -18,6 +18,9 @@ add_action(
 		}
 		global $menu;
 		$allowed = array( 'index.php', 'edit.php?post_type=page', 'upload.php', 'profile.php' );
+		if ( hypetech_kunde_darf_beitraege() ) {
+			$allowed[] = 'edit.php';
+		}
 		foreach ( (array) $menu as $item ) {
 			if ( isset( $item[2] ) && ! in_array( $item[2], $allowed, true ) ) {
 				remove_menu_page( $item[2] );
@@ -75,6 +78,9 @@ function hypetech_dashboard_widget(): void {
 		<li>Beim Bildwechsel immer den <strong>Alternativtext</strong> ausfüllen (kurze Bildbeschreibung).</li>
 		<li>Oben rechts auf <strong>Aktualisieren</strong> klicken – fertig.</li>
 	</ol>
+	<?php if ( hypetech_kunde_darf_beitraege() ) : ?>
+	<p><strong>Neuer Beitrag:</strong> Links auf <em>Beiträge → Neu hinzufügen</em>. Titel, kurze Zusammenfassung (Textauszug), Beitragsbild und Kategorie ausfüllen, Text schreiben, <em>Veröffentlichen</em>.</p>
+	<?php endif; ?>
 	<p>Layout und Design sind geschützt, damit nichts versehentlich verrutscht. Sie möchten einen neuen Abschnitt oder eine neue Seite?</p>
 	<p><strong>Ihr Ansprechpartner:</strong> <?php echo esc_html( $kontakt ); ?></p>
 	<?php
@@ -123,7 +129,9 @@ add_action(
 		$bar->remove_node( 'comments' );
 		$bar->remove_node( 'wp-logo' );
 		if ( hypetech_is_kunde() ) {
-			foreach ( array( 'new-content', 'customize', 'updates', 'search', 'site-editor' ) as $node ) {
+			// „Neu“ nur für Beiträge, wenn freigeschaltet – nie Seiten oder Nutzer.
+			$weg = hypetech_kunde_darf_beitraege() ? array( 'new-page', 'new-user' ) : array( 'new-content' );
+			foreach ( array_merge( $weg, array( 'customize', 'updates', 'search', 'site-editor' ) ) as $node ) {
 				$bar->remove_node( $node );
 			}
 		}
